@@ -359,6 +359,8 @@ const SUPA = "https://pjbuenezxgnvhmflxula.supabase.co", SUPA_KEY = "sb_publisha
 const SUPA_FILES = SUPA + "/storage/v1/object/public/site/";
 const ART_URL = BETA ? "https://beta.getjoy.com/" : "https://claude.ai/artifact/Hiqz8YSSECMv1obSdjFi2R";
 // Photos live in Claude's storage as "/_blob/<id>"; the beta keeps a copy of each as photos/<id>.webp.
+// A card photo that fails to load is replaced by the category icon, the same as an event with no photo.
+window.noImg = im => { const s = document.createElement("span"); s.className = "noimg"; s.setAttribute("aria-hidden","true"); s.innerHTML = im.dataset.icon || ""; im.replaceWith(s); };
 const imgUrl = u => BETA && typeof u === "string" && u.startsWith("/_blob/") ? SUPA_FILES + "photos/" + u.slice(7) + ".webp" : u;
 if (BETA){ const lg = document.querySelector("#home img"); if (lg) lg.src = "logo.png";
   document.title = "GetJoy: fun things to do near you";
@@ -754,7 +756,7 @@ function cardHTML(e, rec){
       : onNow ? `<div class="dt now" aria-hidden="true"><span class="m">Thru ${fmt(e._e,{month:"short"})}</span><span class="d">${fmt(e._e,{day:"numeric"})}</span><span class="t">On now</span></div>`
       : `<div class="dt" aria-hidden="true"><span class="w">${fmt(d,{weekday:"short"})}</span><span class="m">${fmt(d,{month:"short"})}</span><span class="d">${fmt(d,{day:"numeric"})}</span><span class="t">${esc(time)}</span></div>`}
     <div class="ph"><a class="ph-link" data-act="titlelink" href="${esc(e.url)}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true"></a>
-      ${e.image ? `<img src="${esc(e.image)}" alt="" loading="lazy" decoding="async"${Array.isArray(e.focus) && e.focus.length===2 ? ` style="object-position:${+e.focus[0]||50}% ${+e.focus[1]||40}%"` : ""} onerror="this.remove()">` : `<span class="noimg" aria-hidden="true">${icon(e)}</span>`}
+      ${e.image ? `<img src="${esc(e.image)}" alt="" loading="lazy" decoding="async"${Array.isArray(e.focus) && e.focus.length===2 ? ` style="object-position:${+e.focus[0]||50}% ${+e.focus[1]||40}%"` : ""} onerror="noImg(this)" data-icon="${esc(icon(e))}">` : `<span class="noimg" aria-hidden="true">${icon(e)}</span>`}
       ${status ? `<span class="badge status ${status[1]}">${status[0]}</span>` : ""}
     </div>
     <div class="body">
