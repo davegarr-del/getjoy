@@ -595,8 +595,10 @@ const CROWD_IX = {open:1, bookmark:2, ticket:3, forward:4, nope:5};
 let crowd = store.get("crowd", {day:"", seen:[], ev:{}}), crowdT = null, cardObs = null;
 /* How often this visitor uses the header tabs vs the Date filter for Today / This weekend / All, to decide
    whether the tabs earn their place. Kept as counts on the visit record, merged by taking the larger number. */
-let uses = store.get("uses", {});
-function useBump(k){ uses[k] = (uses[k]||0) + 1; store.set("uses", uses); clearTimeout(crowdT); crowdT = setTimeout(crowdSync, 5000); }
+// Stats start from scratch at STATS_SINCE (Dave, Nov 17). Usage counts live under a new name so older counts are ignored.
+const STATS_SINCE = "2026-11-17T19:55:00Z";
+let uses = store.get("tabUse", {});
+function useBump(k){ uses[k] = (uses[k]||0) + 1; store.set("tabUse", uses); clearTimeout(crowdT); crowdT = setTimeout(crowdSync, 5000); }
 function crowdBump(id, i){ const r = crowd.ev[id] || (crowd.ev[id] = [0,0,0,0,0,0]); r[i]++; store.set("crowd", crowd); clearTimeout(crowdT); crowdT = setTimeout(crowdSync, 5000); }
 async function crowdSync(){
   if (!db || !uid) return;
@@ -604,8 +606,8 @@ async function crowdSync(){
     const remote = s.data().ev || {};
     for (const [id, r] of Object.entries(remote)){ const l = crowd.ev[id]; crowd.ev[id] = l ? l.map((n,i)=>Math.max(n, r[i]||0)) : r; }
     if (EVENTS.length){ const live = new Set(EVENTS.map(e=>e.id)); for (const id of Object.keys(crowd.ev)) if (!live.has(id)) delete crowd.ev[id]; }
-    const ru = s.data().uses || {}; for (const [k,n] of Object.entries(ru)) uses[k] = Math.max(uses[k]||0, n||0); store.set("uses", uses);
-    store.set("crowd", crowd); await ref.update({ev:crowd.ev, uses});
+    const ru = s.data().tabUse || {}; for (const [k,n] of Object.entries(ru)) uses[k] = Math.max(uses[k]||0, n||0); store.set("tabUse", uses);
+    store.set("crowd", crowd); await ref.update({ev:crowd.ev, tabUse:uses});
   } catch(e){}
 }
 function watchCards(){
@@ -1275,21 +1277,21 @@ function statsHTML(){
   const rate = f => { const seen = stats.views.filter(f).length, s = stats.subs.filter(f).length; return {seen, s, pct: seen ? Math.round(s/seen*100) : 0}; };
   const c = rate(x=>x.variant==="C"); // only the current message; the old A/B period isn't counted
   return `<div class="panel"><h2>Signup rate (only you see this)</h2>
-    <p class="sub">Since the new signup message (Nov 17): visitors who signed up from Recommended for You ÷ visitors who saw it with real recommendations. Goal: 25%. Active subscribers counts everyone signed up, from any time.</p>
+    <p class="sub">Since the new signup message (Nov 17): visitors who signed up from Recommended for You ÷ visitors who saw it with real recommendations. Goal: 25%. Everything here counts from Nov 17, 2026 (stats were started over then).</p>
     <div class="stats">
       <div class="stat"><b>${c.seen ? c.pct+"%" : "–"}</b><span>${c.seen ? `Signup rate · ${c.s} of ${c.seen} visitors` : "Signup rate · no visitors have seen the new message yet"}</span></div>
-      <div class="stat"><b>${stats.subs.filter(x=>x.active!==false).length}</b><span>Active subscribers (all time)</span></div>
+      <div class="stat"><b>${stats.subs.filter(x=>x.active!==false && (x.subscribedAt||"") >= STATS_SINCE).length}</b><span>New subscribers since Nov 17</span></div>
     </div>
     <p class="sub">Current: "${esc(VARIANTS.C.head)}" Visitors who aren't signed in to claude.ai can browse but can't be counted.</p></div>` + tabStatsHTML();
 }
 function tabStatsHTML(){
-  const vs = stats.views, n = vs.length, used = k => vs.filter(x=>x.uses && (x.uses["tab:"+k] || x.uses["date:"+k])).length,
-    tabs = k => vs.reduce((t,x)=>t + ((x.uses||{})["tab:"+k]||0), 0), pct = c => n ? Math.round(c/n*100) : 0;
+  const vs = stats.views.filter(x=>(x.last||"") >= STATS_SINCE), n = vs.length, used = k => vs.filter(x=>x.tabUse && (x.tabUse["tab:"+k] || x.tabUse["date:"+k])).length,
+    tabs = k => vs.reduce((t,x)=>t + ((x.tabUse||{})["tab:"+k]||0), 0), pct = c => n ? Math.round(c/n*100) : 0;
   const td = used("today"), wk = used("this-weekend");
   return `<div class="panel"><h2>Header tabs (only you see this)</h2>
     <p class="sub">Of all visitors, how many ever picked Today or This weekend (from the header tabs or the Date filter). If few do after about 100 visitors, remove the tabs.</p>
     <div class="stats">
-      <div class="stat"><b>${n}</b><span>Visitors</span></div>
+      <div class="stat"><b>${n}</b><span>Visitors since Nov 17</span></div>
       <div class="stat"><b>${pct(td)}%</b><span>Used Today · ${td} · ${tabs("today")} tab clicks</span></div>
       <div class="stat"><b>${pct(wk)}%</b><span>Used This weekend · ${wk} · ${tabs("this-weekend")} tab clicks</span></div>
       <div class="stat"><b>${tabs("coming-up")}</b><span>"All" tab clicks</span></div>
@@ -1686,7 +1688,7 @@ async function logVisit(){
   if (!db || !uid) return;
   const today = new Date().toISOString().slice(0,10), now = new Date().toISOString();
   try { const ref = db.doc("views/"+uid); const s = await ref.get();
-    if (!s.exists) await ref.set({first:now, last:now, lastDay:today, days:1, uses});
+    if (!s.exists) await ref.set({first:now, last:now, lastDay:today, days:1, tabUse:uses});
     else if (s.data().lastDay!==today) await ref.update({last:now, lastDay:today, days:(s.data().days||1)+1});
   } catch(e){}
 }
@@ -1695,7 +1697,7 @@ async function logSaw(){
   store.set("saw", {variant, day:today});
   if (!db || !uid) return;
   try { const ref = db.doc("views/"+uid); const s = await ref.get(), now = new Date().toISOString();
-    if (!s.exists) await ref.set({variant, first:now, last:now, lastDay:today, days:1, uses});
+    if (!s.exists) await ref.set({variant, first:now, last:now, lastDay:today, days:1, tabUse:uses});
     else if (!s.data().variant) await ref.update({variant});
   } catch(e){}
 }
@@ -1756,6 +1758,7 @@ setTimeout(()=>{ backupOK = true; useBackup(); }, 3000);
   if (!db){ backupOK = true; useBackup(); }
   try { user = await host.use("user"); uid = user ? await user.id() : null; } catch(e){ uid = null; }
   if (TEST) uid = null; // tester mode never touches anyone's subscription or view counts
+  if (BETA && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) uid = null; // local test copies don't write to the real beta records
   logVisit();
   if (db){
     // The catalog is split across documents: catalog/current holds the cities, categories and the
