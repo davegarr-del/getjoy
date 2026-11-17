@@ -1273,13 +1273,11 @@ function renderAccount(){
 }
 function statsHTML(){
   const rate = f => { const seen = stats.views.filter(f).length, s = stats.subs.filter(f).length; return {seen, s, pct: seen ? Math.round(s/seen*100) : 0}; };
-  const all = rate(x=>!!x.variant), c = rate(x=>x.variant==="C"), ab = rate(x=>x.variant==="A"||x.variant==="B");
+  const c = rate(x=>x.variant==="C"); // only the current message; the old A/B period isn't counted
   return `<div class="panel"><h2>Signup rate (only you see this)</h2>
     <p class="sub">Visitors who gave their email from Recommended for You ÷ visitors who saw it with real recommendations. Goal: 25%.</p>
     <div class="stats">
-      <div class="stat"><b>${all.pct}%</b><span>Overall · ${all.s} of ${all.seen}</span></div>
-      <div class="stat"><b>${c.pct}%</b><span>Current message · ${c.s} of ${c.seen}</span></div>
-      <div class="stat"><b>${ab.pct}%</b><span>Old A/B messages · ${ab.s} of ${ab.seen}</span></div>
+      <div class="stat"><b>${c.pct}%</b><span>Signup rate · ${c.s} of ${c.seen}</span></div>
       <div class="stat"><b>${stats.subs.filter(x=>x.active!==false).length}</b><span>Active subscribers</span></div>
     </div>
     <p class="sub">Current: "${esc(VARIANTS.C.head)}" Visitors who aren't signed in to claude.ai can browse but can't be counted.</p></div>` + tabStatsHTML();
