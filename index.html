@@ -94,13 +94,12 @@ button{font:inherit;color:inherit}
 .range label{font-size:12px;color:var(--joy-ink-2);display:grid;gap:3px}
 
 /* Breadcrumb, question, chips */
-.crumbs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0 12px;font:700 22px/1.2 var(--font-display);letter-spacing:-.01em;color:var(--joy-ink)}
+.crumbs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;min-height:20px;font:600 13px/1.2 var(--font-body, inherit);color:var(--joy-ink-2)}
 /* Links back up the trail look like links: orange, underlined, with a hover highlight. */
-.crumbs button{background:none;border:0;padding:2px 6px;margin:0 -6px;border-radius:8px;cursor:pointer;font:inherit;color:var(--joy-orange);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.crumbs button{background:none;border:0;padding:2px 6px;margin:0 -6px;border-radius:8px;cursor:pointer;font:inherit;color:var(--joy-orange);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
 .crumbs button:hover{background:var(--joy-orange-soft);color:var(--joy-orange-hover)}
 .crumbs .here{color:var(--joy-ink)}
 .crumbs .sep{color:var(--joy-ink-3);font-weight:500}
-@media (max-width:640px){ .crumbs{font-size:19px} }
 .crumbs .share{margin-left:auto;text-decoration:none;border:1px solid var(--joy-border);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500}
 .question{margin:0}
 .question h2{font:700 26px/1.15 var(--font-display);margin:0 0 12px;letter-spacing:-.015em;text-wrap:balance}
@@ -800,7 +799,9 @@ function crumbsHTML(){
   // Breadcrumb in the same one-word names as the chips: "All Events > Comedy > Stand-up".
   // With a site picked from "Listed on": "All Events > Ticketmaster > Comedy".
   const site = ui.site ? siteName(ui.site) : null;
-  parts.push(segs.length || site ? `<button data-node="" data-clear-site="1">All Events</button>` : `<span class="here">All Events</span>`);
+  // On the first screen (no category, no site) the trail is empty: a thin reserved line, so nothing jumps when it appears.
+  if (!segs.length && !site) return `<nav class="crumbs" aria-label="Breadcrumb"></nav>`;
+  parts.push(`<button data-node="" data-clear-site="1">All Events</button>`);
   if (site){ parts.push(`<span class="sep" aria-hidden="true">&gt;</span>`);
     parts.push(segs.length ? `<button data-node="">${esc(site)}</button>` : `<span class="here" aria-current="page">${esc(site)}</span>`); }
   segs.forEach((_,i)=>{ const p = segs.slice(0,i+1).join("/"); parts.push(`<span class="sep" aria-hidden="true">&gt;</span>`);
