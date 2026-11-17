@@ -1275,10 +1275,10 @@ function statsHTML(){
   const rate = f => { const seen = stats.views.filter(f).length, s = stats.subs.filter(f).length; return {seen, s, pct: seen ? Math.round(s/seen*100) : 0}; };
   const c = rate(x=>x.variant==="C"); // only the current message; the old A/B period isn't counted
   return `<div class="panel"><h2>Signup rate (only you see this)</h2>
-    <p class="sub">Visitors who gave their email from Recommended for You ÷ visitors who saw it with real recommendations. Goal: 25%.</p>
+    <p class="sub">Since the new signup message (Nov 17): visitors who signed up from Recommended for You ÷ visitors who saw it with real recommendations. Goal: 25%. Active subscribers counts everyone signed up, from any time.</p>
     <div class="stats">
-      <div class="stat"><b>${c.pct}%</b><span>Signup rate · ${c.s} of ${c.seen}</span></div>
-      <div class="stat"><b>${stats.subs.filter(x=>x.active!==false).length}</b><span>Active subscribers</span></div>
+      <div class="stat"><b>${c.seen ? c.pct+"%" : "–"}</b><span>${c.seen ? `Signup rate · ${c.s} of ${c.seen} visitors` : "Signup rate · no visitors have seen the new message yet"}</span></div>
+      <div class="stat"><b>${stats.subs.filter(x=>x.active!==false).length}</b><span>Active subscribers (all time)</span></div>
     </div>
     <p class="sub">Current: "${esc(VARIANTS.C.head)}" Visitors who aren't signed in to claude.ai can browse but can't be counted.</p></div>` + tabStatsHTML();
 }
