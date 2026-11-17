@@ -391,13 +391,14 @@ const DISTS = [["5","Within 5 miles"],["10","Within 10 miles"],["15","Within 15 
 const distShort = d => d==="any" ? "Any" : d+" mi";
 const W = {ticket:10, forward:5, bookmark:4, open:2, chip:1, search:1, nope:-3, unbookmark:-4};
 const PAGE = 20;
+// One signup message for everyone (Dave's wording, Nov 17). The old A/B test of two headlines is over; "C" marks
+// signups and visits from this message so the rate can be told apart from the A/B period.
 const VARIANTS = {
-  A:{head:"The best things to do {place}, picked for you.", btn:"Get my weekly picks"},
-  B:{head:"Weekly picks {place}, in time to plan your weekend.", btn:"Get my weekly picks"}
+  C:{head:"The best things to do {place}, picked just for you.", btn:"Get my weekly picks"}
 };
 // {place} in a headline becomes "near Palo Alto" (the visitor's city), or "near you" when no city is chosen.
-const PITCH = "One email every Wednesday morning with 5 to 10 events chosen for what you like.";
-const FINE = "Free. Unsubscribe in one tap.";
+const PITCH = "Every Wednesday morning, 5 to 10 events chosen for what you like.";
+const FINE = "The more you use GetJoy and the email, the better your picks get. Free, and you can unsubscribe in one tap.";
 const UNDER = "GetJoy learns from the events you open, bookmark and send, so your picks keep getting better.";
 
 /* ============ Icons & category colors ============ */
@@ -514,8 +515,7 @@ let recentCities = store.get("recent", []);
 let friends = store.get("friends", []);
 // Each friend's phone or email, kept only in this browser (never synced): {name: {phone} | {email}}.
 let contacts = store.get("contacts", {});
-let variant = store.get("variant", null);
-if (!variant){ variant = Math.random()<0.5 ? "A" : "B"; store.set("variant", variant); }
+let variant = "C"; store.set("variant", variant);
 let sub = store.get("sub", null);            // {email, city, at}
 const saved = { city: store.get("city", null), when: store.get("when", null), dist: store.get("dist", null) };
 let ui = { view:"browse", node:"", city:null, when:null, sort:"best", shown:PAGE, open:new Set(), moreChips:false, event:null, src:null, q:"", venue:null, dist:"15", site:null };
@@ -1232,7 +1232,7 @@ function signupHTML(){
   return `<div class="panel signup"><h2>${esc(v.head.replace("{place}", place))}</h2>
     <p>${esc(PITCH)}</p>
     <form id="signupForm" novalidate><label class="sr" for="email" style="position:absolute;left:-9999px">Email address</label>
-      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"><button class="big" type="submit">${esc(v.btn)}</button></form>
+      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="Your email address"><button class="big" type="submit">${esc(v.btn)}</button></form>
     <div class="err" id="signupErr" hidden></div>
     <p class="sub">${esc(FINE)}</p></div>`;
 }
@@ -1272,17 +1272,17 @@ function renderAccount(){
   return html;
 }
 function statsHTML(){
-  const row = v => { const seen = stats.views.filter(x=>x.variant===v).length, s = stats.subs.filter(x=>x.variant===v).length; return {seen, s, pct: seen ? Math.round(s/seen*100) : 0}; };
-  const a = row("A"), b = row("B"), all = {seen:a.seen+b.seen, s:a.s+b.s}; all.pct = all.seen ? Math.round(all.s/all.seen*100) : 0;
+  const rate = f => { const seen = stats.views.filter(f).length, s = stats.subs.filter(f).length; return {seen, s, pct: seen ? Math.round(s/seen*100) : 0}; };
+  const all = rate(x=>!!x.variant), c = rate(x=>x.variant==="C"), ab = rate(x=>x.variant==="A"||x.variant==="B");
   return `<div class="panel"><h2>Signup rate (only you see this)</h2>
     <p class="sub">Visitors who gave their email from Recommended for You ÷ visitors who saw it with real recommendations. Goal: 25%.</p>
     <div class="stats">
       <div class="stat"><b>${all.pct}%</b><span>Overall · ${all.s} of ${all.seen}</span></div>
-      <div class="stat"><b>${a.pct}%</b><span>Message A · ${a.s} of ${a.seen}</span></div>
-      <div class="stat"><b>${b.pct}%</b><span>Message B · ${b.s} of ${b.seen}</span></div>
+      <div class="stat"><b>${c.pct}%</b><span>Current message · ${c.s} of ${c.seen}</span></div>
+      <div class="stat"><b>${ab.pct}%</b><span>Old A/B messages · ${ab.s} of ${ab.seen}</span></div>
       <div class="stat"><b>${stats.subs.filter(x=>x.active!==false).length}</b><span>Active subscribers</span></div>
     </div>
-    <p class="sub">A: "${esc(VARIANTS.A.head)}" · B: "${esc(VARIANTS.B.head)}". Visitors who aren't signed in to claude.ai can browse but can't be counted.</p></div>` + tabStatsHTML();
+    <p class="sub">Current: "${esc(VARIANTS.C.head)}" Visitors who aren't signed in to claude.ai can browse but can't be counted.</p></div>` + tabStatsHTML();
 }
 function tabStatsHTML(){
   const vs = stats.views, n = vs.length, used = k => vs.filter(x=>x.uses && (x.uses["tab:"+k] || x.uses["date:"+k])).length,
