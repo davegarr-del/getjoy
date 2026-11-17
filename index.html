@@ -66,8 +66,10 @@ button{font:inherit;color:inherit}
 
 /* Context bar + search */
 .sticky{background:var(--joy-cream);padding-block:12px 10px}
-/* Only the category row stays pinned while scrolling; the top bar and the city/date/search bar scroll away. */
-#view > .question{position:sticky;top:env(safe-area-inset-top,0px);z-index:12;background:var(--joy-cream);padding-block:8px;margin-inline:-4px;padding-inline:4px;transition:box-shadow .15s}
+/* The city/distance/date/search/sort bar and the category row stay pinned while scrolling; the top bar scrolls away.
+   --ctxh is the filter bar's height (set by pinCheck), so the category row pins right under it. */
+#ctxbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:13}
+#view > .question{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--ctxh,0px));z-index:12;background:var(--joy-cream);padding-block:8px;margin-inline:-4px;padding-inline:4px;transition:box-shadow .15s}
 #view > .question.stuck{box-shadow:0 6px 12px -8px rgba(26,20,16,.25)}
 .context{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:relative}
 .sortsel[hidden]{display:none}
@@ -1709,12 +1711,15 @@ async function loadStats(){
 }
 
 /* ============ Pinned category row ============ */
-// Shadow under the category row once it's pinned, and keep the category side panel just below the top bar
-// (or at the very top once the top bar has scrolled away).
+// The filter bar and category row are pinned together: the category row sits right under the filter bar, with a
+// shadow under it once pinned. Keep the category side panel just below the top bar (or at the very top once the top
+// bar has scrolled away).
 let pinRaf = 0;
 function pinCheck(){ pinRaf = 0;
+  const cb = $("#ctxbar"), h = cb && !cb.hidden && cb.offsetParent ? cb.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty("--ctxh", h + "px");
   const q = document.querySelector("#view > .question");
-  if (q) q.classList.toggle("stuck", q.getBoundingClientRect().top <= 1 && scrollY > 0);
+  if (q) q.classList.toggle("stuck", q.getBoundingClientRect().top <= h + 1 && scrollY > 0);
   const tb = document.querySelector(".topbar"), side = $("#catSide");
   if (tb && side) side.style.top = Math.max(0, tb.getBoundingClientRect().bottom) + "px";
 }
