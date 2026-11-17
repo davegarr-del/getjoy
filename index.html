@@ -1530,7 +1530,9 @@ document.addEventListener("click", ev => {
   const t = ev.target;
   if (!t.closest(".ctx")) closePops();
   const goBtn = t.closest("[data-go]"); if (goBtn){ const v = goBtn.dataset.go; go({view:v, node: v==="browse"?ui.node:ui.node}); return; }
-  if (t.closest("#home")){ go({view:"browse", node:"", q:"", site:null}); return; }
+  // The logo is "start over": no category, search or site, and dates back to All (Coming up). City and distance stay,
+  // since they're where the visitor is, not a browsing filter.
+  if (t.closest("#home")){ saved.when = "coming-up"; store.set("when", "coming-up"); closePops(); go({view:"browse", node:"", q:"", site:null, when:"coming-up"}); return; }
   const ss = t.closest("[data-side-site]"); if (ss){ const k = ss.dataset.sideSite;
     if (!matchMedia("(min-width:1100px)").matches) store.set("side", false);
     go({view:"browse", node:"", q:"", site: ui.site===k ? null : k}); return; }
